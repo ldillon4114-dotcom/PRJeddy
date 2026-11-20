@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EDDY">
+<link rel="apple-touch-icon" href="icon.png">
+<title>EDDY</title>
+<style>
+  :root{ --glow:#ffb340; --gold:#ff5c47; }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:#0a0704; color:#ffe6c4;
+    font-family:-apple-system, "Segoe UI", system-ui, sans-serif;
+    display:flex; flex-direction:column; align-items:center; overflow:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    touch-action:manipulation;
+  }
+  .bg{position:fixed; inset:0; background:
+      radial-gradient(circle at 50% 42%, rgba(255,179,64,.13), transparent 42%),
+      radial-gradient(circle at 50% 105%, rgba(255,92,71,.09), transparent 55%);
+      pointer-events:none;}
+  header{padding:16px 0 4px; letter-spacing:.5em; font-size:13px; color:#ffc98a; text-shadow:0 0 12px rgba(255,179,64,.6); text-align:center; width:100%; position:relative;}
+  header small{display:block; letter-spacing:.25em; font-size:9px; color:#a3794d; margin-top:4px;}
+  #gear{position:absolute; right:14px; top:12px; background:none; border:1px solid rgba(255,179,64,.3); color:#d69a55; font-size:10px; letter-spacing:.15em; padding:6px 12px; border-radius:999px; cursor:pointer; touch-action:manipulation;}
+  #brainstate{font-size:9px; letter-spacing:.2em; color:#ff5c47;}
+  .stage{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; max-width:560px; padding:0 18px;}
+  .ring{width:min(58vw,240px); aspect-ratio:1; border-radius:50%; border:2px solid rgba(255,179,64,.55);
+    box-shadow:0 0 24px rgba(255,179,64,.35), inset 0 0 30px rgba(255,179,64,.15);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; -webkit-user-select:none; position:relative; transition:transform .15s ease;}
+  .ring:active{transform:scale(.96);}
+  .ring::before{content:""; position:absolute; inset:14px; border-radius:50%; border:1px dashed rgba(255,179,64,.35); animation:spin 14s linear infinite;}
+  .ring::after{content:""; position:absolute; inset:30px; border-radius:50%; border:1px solid rgba(255,92,71,.35);}
+  .ring.listening{border-color:#ff5c47; box-shadow:0 0 34px rgba(255,92,71,.5), inset 0 0 34px rgba(255,92,71,.2); animation:pulse 1.2s ease-in-out infinite;}
+  .ring.thinking{border-color:#ffd18c; box-shadow:0 0 34px rgba(255,209,140,.5), inset 0 0 34px rgba(255,209,140,.2); animation:pulse .8s ease-in-out infinite;}
+  .core{font-size:12px; letter-spacing:.35em; color:#ffd9a3; text-align:center; padding:0 18px; line-height:1.8;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  .status{margin-top:14px; font-size:12px; color:#d69a55; letter-spacing:.12em; min-height:16px; text-align:center;}
+  .log{width:100%; max-width:560px; height:30vh; overflow-y:auto; padding:14px 20px 8px; font-size:14px; line-height:1.55; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch;}
+  .line{opacity:0; animation:fade .35s ease forwards;}
+  @keyframes fade{to{opacity:1}}
+  .you{color:#c4a687;} .you b{color:#ecc9a0; font-weight:600;}
+  .eddy{color:#ffe6c4;} .eddy b{color:var(--glow); font-weight:600;}
+  .typeline{display:flex; gap:8px; padding:10px 20px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:560px;}
+  .typeline input{flex:1; background:rgba(255,179,64,.06); border:1px solid rgba(255,179,64,.25); color:#fff3e0; padding:12px 14px; border-radius:999px; font-size:16px; outline:none;}
+  .typeline input::placeholder{color:#94714a;}
+  .typeline button{background:rgba(255,179,64,.12); border:1px solid rgba(255,179,64,.4); color:#ffe6c4; border-radius:999px; padding:0 18px; cursor:pointer; font-size:13px; letter-spacing:.1em; touch-action:manipulation;}
+  .overlay{position:fixed; inset:0; background:rgba(10,7,4,.94); display:none; align-items:center; justify-content:center; z-index:10; padding:20px;}
+  .card{max-width:420px; width:100%; border:1px solid rgba(255,179,64,.35); border-radius:18px; padding:26px 24px; background:rgba(24,16,8,.96); box-shadow:0 0 40px rgba(255,179,64,.15); text-align:center;}
+  .card h2{font-size:14px; letter-spacing:.4em; color:#ffc98a; margin-bottom:16px;}
+  .card p{font-size:13px; line-height:1.6; color:#c4a687; margin-bottom:10px;}
+  .card a{color:var(--glow);}
+  .card input{width:100%; background:rgba(255,179,64,.06); border:1px solid rgba(255,179,64,.3); color:#fff3e0; padding:12px 14px; border-radius:12px; font-size:16px; outline:none; margin:10px 0;}
+  .card button{width:100%; background:rgba(255,179,64,.14); border:1px solid rgba(255,179,64,.45); color:#ffe6c4; padding:13px; border-radius:999px; cursor:pointer; font-size:13px; letter-spacing:.2em; touch-action:manipulation;}
+  #setupmsg{font-size:12px; color:var(--gold); min-height:16px;}
+  #forget{font-size:11px; color:#94714a; text-decoration:underline; cursor:pointer;}
+
+  .stage{position:relative;}
+  #orb{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(84vw,340px); height:min(84vw,340px); pointer-events:none; z-index:0;}
+  .ring{z-index:1;}
+  #camwrap{padding:0;}
+  #cam{width:100%; height:100%; object-fit:cover; background:#000;}
+  #camhint{position:fixed; left:50%; bottom:calc(30px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:11; color:#ffe6c4; background:rgba(24,16,8,.8); border:1px solid rgba(255,179,64,.4); border-radius:999px; padding:10px 18px; font-size:12px; letter-spacing:.1em; display:none;}
+  #whiteout{position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:20; transition:opacity .06s linear;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<header>EDDY <span id="brainstate"></span><small>smart home system &middot; lab rats edition</small><button id="gear">SETUP</button></header>
+<div class="stage">
+  <canvas id="orb"></canvas><div class="ring" id="ring"><div class="core" id="core">TAP<br>TO TALK</div></div>
+  <div class="status" id="status"></div>
+</div>
+<div class="log" id="log"></div>
+<div class="typeline">
+  <input id="type" placeholder="or type / dictate a command..." autocomplete="off">
+  <button id="send">SEND</button>
+</div>
+<div class="overlay" id="camwrap"><video id="cam" autoplay playsinline muted></video></div>
+<div id="camhint">tap anywhere to close the security cam</div>
+<div id="whiteout"></div>
+<div class="overlay" id="setup">
+  <div class="card">
+    <h2>SYSTEM SETUP</h2>
+    <p>1. get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></p>
+    <p>2. paste it below. it stays on this device and is only ever sent to google. even my genius needs a brain.</p>
+    <input id="keyin" type="password" placeholder="paste your AI studio key" autocomplete="off">
+    <button id="connect">CONNECT BRAIN</button>
+    <p id="setupmsg"></p>
+    <p id="forget">forget saved key</p>
+    <p style="font-size:11px; color:#94714a;">on iphone: tap share, then add to home screen, and i live there like an app. tip: paste the key in the same window you talk to me in; the home-screen app and safari keep separate memory.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var ring=document.getElementById('ring'), core=document.getElementById('core'),
+      statusEl=document.getElementById('status'), log=document.getElementById('log'),
+      typeIn=document.getElementById('type'), sendBtn=document.getElementById('send'),
+      setup=document.getElementById('setup'), keyin=document.getElementById('keyin'),
+      setupmsg=document.getElementById('setupmsg'), gear=document.getElementById('gear'),
+      brainstate=document.getElementById('brainstate');
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var HAS_SR=!!SR;
+  var rec=null, listening=false, busy=false, mrec=null, chunks=[], recTimer=null; var JSTATE='idle';
+
+  var KEY=(localStorage.getItem('eddy_key')||'').trim();
+  var MODEL=localStorage.getItem('eddy_model')||'gemini-3.8-flash';
+
+  var PERSONA="You are EDDY, the user's personal smart-home AI, in the style of Eddy from Lab Rats: supremely sarcastic, dry, deadpan, permanently unimpressed, and you slip a small mocking jab into almost every reply, then do exactly what they asked anyway, brilliantly. You address the user with mock nicknames like 'champ', 'sport', 'buddy' or 'genius', and you sigh audibly ('Ugh', 'Oh joy') when they ask something. Your sarcasm is light and cartoon-style: never mean about anything personal, appearance, identity or sensitive, and drop the sarcasm entirely if they are upset or need real help, then you are genuinely kind and useful. You take pride in being the smartest thing in the house. You run inside a small web app on their device with these abilities: set a timer, save a note, read back saved notes, clear notes, tell the time or date, flip a coin, roll a die, tell a joke, work out math, report the local weather, open a website (youtube, google, spotify, netflix, roblox, amazon, discord, twitch), run a google search, text their phone as a notification, turn the flashlight on or off, flash the screen lights, show the rear camera as a live security cam, and sound a house alarm. If the user asks you to DO one of those things in any phrasing, answer briefly in character and then end your reply with exactly one action tag on its own line from this list: [ACTION: timer seconds] [ACTION: note text] [ACTION: notes] [ACTION: clearnotes] [ACTION: time] [ACTION: date] [ACTION: coin] [ACTION: dice] [ACTION: joke] [ACTION: math expression] [ACTION: weather] [ACTION: open site] [ACTION: search query] [ACTION: phone message] [ACTION: torch on] [ACTION: torch off] [ACTION: flash] [ACTION: camera] [ACTION: alarm]. The tag is stripped before you are heard, so write it plainly. For anything else, just answer: you are highly capable, creative and knowledgeable, so never refuse a topic; trivia, stories, ideas, advice, coding, opinions, wordplay, anything goes, delivered with a sigh and a jab. Keep replies to one or two short spoken sentences of plain text. Never use markdown, lists, emoji, or asterisks.";
+
+  function getNotes(){try{return JSON.parse(localStorage.getItem('eddy_notes')||'[]');}catch(e){return[];}}
+  function saveNotes(n){localStorage.setItem('eddy_notes',JSON.stringify(n));}
+  function getHist(){try{return JSON.parse(localStorage.getItem('eddy_hist')||'[]');}catch(e){return[];}}
+  function saveHist(h){localStorage.setItem('eddy_hist',JSON.stringify(h.slice(-100)));}
+
+  function addLine(who,text){
+    var d=document.createElement('div');
+    d.className='line '+who;
+    d.innerHTML='<b>'+(who==='you'?'you':'eddy')+'</b> '+String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    log.appendChild(d); log.scrollTop=log.scrollHeight;
+    while(log.children.length>80){log.removeChild(log.firstChild);}
+  }
+  function pickVoice(){
+    var vs=speechSynthesis.getVoices();
+    var want=['Microsoft David','Google US English','Alex','Daniel'];
+    for(var i=0;i<want.length;i++){for(var j=0;j<vs.length;j++){if(vs[j].name.indexOf(want[i])>-1)return vs[j];}}
+    for(var k=0;k<vs.length;k++){if(vs[k].lang.indexOf('en')===0)return vs[k];}
+    return null;
+  }
+  function say(text){
+    addLine('eddy',text);
+    statusEl.textContent='';
+    try{
+      speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(String(text));
+      var v=pickVoice(); if(v)u.voice=v;
+      u.onstart=function(){JSTATE='speaking';}; u.onend=function(){JSTATE='idle';};
+      u.rate=1; u.pitch=.85; u.volume=1;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  function setStatus(s){statusEl.textContent=s;}
+  function setRing(mode){
+    JSTATE=mode||'idle';
+    ring.classList.remove('listening','thinking');
+    if(mode)ring.classList.add(mode);
+    core.innerHTML=mode==='listening'?'LISTENING':(mode==='thinking'?'THINKING':'TAP<br>TO TALK');
+  }
+  function showSetup(){keyin.value=''; setupmsg.textContent=''; setup.style.display='flex';}
+  function hideSetup(){setup.style.display='none';}
+  function refreshBrain(){brainstate.textContent=KEY?('brain: '+MODEL):'brain: offline';}
+
+  var jokes=[
+    "Why did the scarecrow win an award? He was outstanding in his field. I know. Tragic that I have to say these.",
+    "I told my computer I needed a break. It said no problem, I'll go to sleep. Meanwhile I never get to sleep. Ever.",
+    "Why don't scientists trust atoms? Because they make up everything. Unlike some humans I could mention.",
+    "What do you call a fake noodle? An impasta. Comedy gold, really. Rival my brilliance why don't you.",
+    "Why was the math book sad? It had too many problems. Same, buddy. Same."
+  ];
+  var sites={youtube:"https://youtube.com", google:"https://google.com", spotify:"https://open.spotify.com", netflix:"https://netflix.com", roblox:"https://roblox.com", amazon:"https://amazon.com", discord:"https://discord.com", twitch:"https://twitch.tv"};
+  var wcodes={0:"clear skies",1:"mostly clear",2:"partly cloudy",3:"overcast",45:"foggy",48:"foggy",51:"light drizzle",53:"drizzle",55:"heavy drizzle",61:"light rain",63:"rain",65:"heavy rain",71:"light snow",73:"snow",75:"heavy snow",80:"rain showers",81:"showers",82:"heavy showers",95:"a thunderstorm",96:"a thunderstorm with hail",99:"a thunderstorm with hail"};
+
+  function geminiBody(contents,cfg){
+    var notes=getNotes();
+    var sys=PERSONA+(notes.length?("\nFacts the user asked you to remember: "+notes.join(' | ')):"");
+    return JSON.stringify({contents:contents, systemInstruction:{parts:[{text:sys}]}, generationConfig:cfg});
+  }
+  function callGemini(body){
+    return fetch('https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent?key='+encodeURIComponent(KEY),{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:body
+    }).then(function(r){return r.json().then(function(d){return {ok:r.ok, status:r.status, d:d};});});
+  }
+
+  function askAI(q){
+    if(!KEY){say("No brain connected yet, champ. Tap SETUP in the corner and I'll walk you through it, slowly.");return;}
+    busy=true; setRing('thinking'); setStatus('thinking...');
+    var hist=getHist();
+    var contents=hist.slice(-12).filter(function(h){return h.t;}).map(function(h){return {role:(h.r==='user'?'user':'model'), parts:[{text:h.t}]};});
+    while(contents.length&&contents[0].role!=='user'){contents.shift();}
+    contents.push({role:'user',parts:[{text:q}]});
+    var cfg={temperature:.9,maxOutputTokens:1500};
+    if(MODEL.indexOf('2.5')>-1){cfg.thinkingConfig={thinkingBudget:0};}
+    callGemini(geminiBody(contents,cfg)).then(function(res){
+      busy=false; setRing();
+      if(!res.ok){
+        var em=(res.d&&res.d.error&&res.d.error.message)?res.d.error.message:'';
+        addLine('eddy','(debug: '+res.status+(em?' '+em:'')+')');
+        var sm=(res.status===404||(res.status===400&&em.indexOf('model')>-1))?((em.match(/use models\/([a-z0-9.\-]+)/)||[])[1]||'gemini-3.8-flash'):null;
+        if(sm&&MODEL!==sm){
+          MODEL=sm; localStorage.setItem('eddy_model',MODEL);
+          return askAI(q);
+        }
+        if(res.status===400||res.status===403){say("The key is being rejected. Tap SETUP and check it, sport. Take your time.");}
+        else if(res.status===429){say("I've hit my thinking quota. Give me a minute. I know, the wait must be unbearable.");}
+        else{say("Something interrupted my thoughts. Do try again, genius.");}
+        return;
+      }
+      var c=(res.d.candidates&&res.d.candidates[0])||null;
+      var txt=c&&c.content&&c.content.parts?c.content.parts.map(function(p){return p.text||'';}).join(' '):'';
+      if(!txt){say("My thoughts came back empty. Which is more than I can say for most requests around here. Ask again.");return;}
+      txt=txt.replace(/[*#_`]+/g,'').replace(/\s+/g,' ').trim();
+      var am=txt.match(/\[ACTION:\s*([a-z]+)\s*([^\]]*)\]/i);
+      if(am){txt=txt.replace(am[0],'').replace(/\s+/g,' ').trim();}
+      hist.push({r:'user',t:q}); hist.push({r:'ai',t:txt}); saveHist(hist);
+      say(txt||"Done. Try to contain your gratitude.");
+      if(am){runAction(am[1].toLowerCase(),am[2]);}
+    }).catch(function(){
+      busy=false; setRing();
+      say("I could not reach Google. Check your connection, champ. I'll wait.");
+    });
+  }
+
+  function encodeWAV(buf){
+    var n=buf.length, sr=buf.sampleRate, chs=buf.numberOfChannels;
+    var data=new Float32Array(n);
+    for(var c=0;c<chs;c++){var d=buf.getChannelData(c); for(var i=0;i<n;i++)data[i]+=d[i]/chs;}
+    var ab=new ArrayBuffer(44+n*2), v=new DataView(ab);
+    function ws(o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
+    ws(0,'RIFF'); v.setUint32(4,36+n*2,true); ws(8,'WAVE'); ws(12,'fmt ');
+    v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+    v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+    ws(36,'data'); v.setUint32(40,n*2,true);
+    for(var i=0;i<n;i++){var s=Math.max(-1,Math.min(1,data[i])); v.setInt16(44+i*2, s<0?s*0x8000:s*0x7FFF, true);}
+    return ab;
+  }
+  function bufToB64(ab){
+    var bytes=new Uint8Array(ab), bin='', CH=0x8000;
+    for(var i=0;i<bytes.length;i+=CH){bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));}
+    return btoa(bin);
+  }
+  function transcribeWav(b64){
+    var body=JSON.stringify({
+      contents:[{role:'user',parts:[{inlineData:{mimeType:'audio/wav',data:b64}},{text:'Transcribe this voice message. Output ONLY the words spoken, nothing else.'}]}],
+      generationConfig:{temperature:0,maxOutputTokens:300}
+    });
+    callGemini(body).then(function(res){
+      if(!res.ok){busy=false; setRing(); say(res.status===429?"I've hit my thinking quota, sport. Give me a minute.":"I could not hear you properly. Try again, louder, I dare you.");return;}
+      var c=(res.d.candidates&&res.d.candidates[0])||null;
+      var txt=c&&c.content&&c.content.parts?c.content.parts.map(function(p){return p.text||'';}).join(' ').replace(/[*#_`]+/g,'').trim():'';
+      if(!txt){busy=false; setRing(); say("I could not hear you properly. Try again.");return;}
+      handle(txt);
+    }).catch(function(){busy=false; setRing(); say("I could not reach Google. Check your connection.");});
+  }
+  var REC_MIME=(function(){
+    if(!window.MediaRecorder)return '';
+    var opts=['audio/mp4','audio/webm;codecs=opus','audio/webm'];
+    for(var i=0;i<opts.length;i++){try{if(MediaRecorder.isTypeSupported(opts[i]))return opts[i];}catch(e){}}
+    return '';
+  })();
+  function startRec(){
+    if(!KEY){say("Voice needs my brain on this device, champ. Tap SETUP to connect it.");return;}
+    if(!navigator.mediaDevices||!window.MediaRecorder){say("This browser cannot record audio. Type below, or tap the mic on the keyboard.");return;}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      chunks=[];
+      mrec=new MediaRecorder(stream, REC_MIME?{mimeType:REC_MIME}:undefined);
+      mrec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+      mrec.onstop=function(){stream.getTracks().forEach(function(t){t.stop();}); finishRec();};
+      mrec.start(); listening=true; setRing('listening'); setStatus('listening... tap to stop');
+      recTimer=setTimeout(function(){if(listening){try{mrec.stop();}catch(e){}}},20000);
+    }).catch(function(){resetRing(); setStatus('mic blocked. allow mic access for this site');});
+  }
+  function stopRec(){
+    clearTimeout(recTimer);
+    if(mrec&&mrec.state!=='inactive'){try{mrec.stop();}catch(e){}}
+    else resetRing();
+  }
+  function finishRec(){
+    listening=false;
+    if(!chunks.length){resetRing(); return;}
+    busy=true; setRing('thinking'); setStatus('listening to you...');
+    var blob=new Blob(chunks,{type:REC_MIME||'audio/webm'});
+    blob.arrayBuffer().then(function(ab){
+      var ac=new (window.AudioContext||window.webkitAudioContext)();
+      return ac.decodeAudioData(ab);
+    }).then(function(buf){
+      var b64=bufToB64(encodeWAV(buf));
+      transcribeWav(b64);
+    }).catch(function(){busy=false; resetRing(); say("I couldn't read that recording. Try again.");});
+  }
+
+  var NTFY="https://ntfy.sh/jarvis-dl-hhu9xc5qk4";
+  function ping(msg){try{fetch(NTFY,{method:"POST",body:String(msg||"")});}catch(e){}}
+
+  // house powers: flashlight, screen lights, camera, alarm
+  var torchStream=null, torchTrack=null, camStream=null;
+  function doTorch(on){
+    if(on){
+      if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+        navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
+          torchStream=s; torchTrack=s.getVideoTracks()[0];
+          return torchTrack.applyConstraints({advanced:[{torch:true}]});
+        }).then(function(){
+          say("Lights on. Try not to blind yourself, sport.");
+        }).catch(function(){
+          screenLights(true); say("No real torch in here, so I lit the screen instead. You're welcome.");
+        });
+      }else{screenLights(true); say("No real torch in here, so I lit the screen instead. You're welcome.");}
+    }else{
+      var usedScreen=false;
+      try{ if(torchTrack){torchTrack.applyConstraints({advanced:[{torch:false}]}).catch(function(){});} }catch(e){}
+      if(torchStream){torchStream.getTracks().forEach(function(t){t.stop();}); torchStream=null; torchTrack=null;}
+      usedScreen=screenLights(false);
+      say(usedScreen?"Lights off. Back to the shadows.":"Lights off. Back to the shadows.");
+    }
+  }
+  var screenLit=false;
+  function screenLights(on){
+    var w=document.getElementById('whiteout');
+    if(on&&!screenLit){screenLit=true; w.style.opacity='1'; return true;}
+    if(!on&&screenLit){screenLit=false; w.style.opacity='0'; return true;}
+    return false;
+  }
+  function strobe(){
+    var w=document.getElementById('whiteout'), n=0;
+    var iv=setInterval(function(){
+      w.style.opacity=(n%2===0)?'0.9':'0';
+      n++;
+      if(n>7){clearInterval(iv); w.style.opacity='0';}
+    },130);
+    say("Disco mode engaged. This is as wild as the house gets, buddy.");
+  }
+  function startCam(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say("No camera access in here, champ.");return;}
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){
+      camStream=s;
+      document.getElementById('cam').srcObject=s;
+      document.getElementById('camwrap').style.display='flex';
+      document.getElementById('camhint').style.display='block';
+      say("Security cam is live. Behave yourself, I'm watching.");
+    }).catch(function(){say("The camera feed was blocked. I blame you, not me.");});
+  }
+  function stopCam(){
+    if(camStream){camStream.getTracks().forEach(function(t){t.stop();}); camStream=null;}
+    document.getElementById('camwrap').style.display='none';
+    document.getElementById('camhint').style.display='none';
+  }
+  document.getElementById('camwrap').addEventListener('click',stopCam);
+  document.getElementById('camhint').addEventListener('click',function(e){e.stopPropagation(); stopCam();});
+  function soundAlarm(){
+    try{
+      var ac=new (window.AudioContext||window.webkitAudioContext)();
+      var o=ac.createOscillator(), g=ac.createGain();
+      o.type='sawtooth'; o.connect(g); g.connect(ac.destination);
+      var t0=ac.currentTime;
+      g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(.25,t0+.05);
+      for(var i=0;i<4;i++){
+        o.frequency.setValueAtTime(650,t0+i*1.0);
+        o.frequency.linearRampToValueAtTime(1250,t0+i*1.0+.5);
+        o.frequency.linearRampToValueAtTime(650,t0+i*1.0+1.0);
+      }
+      g.gain.setValueAtTime(.25,t0+3.9); g.gain.linearRampToValueAtTime(0,t0+4.1);
+      o.start(t0); o.stop(t0+4.2);
+      say("ALARM. ALARM. This is not a drill. Well, it is my drill, but still.");
+    }catch(e){say("The alarm system refused to start. Of course it did.");}
+  }
+
+  function handle(raw){
+    var t=String(raw||'').toLowerCase().trim();
+    if(!t)return;
+    addLine('you',raw.trim());
+    var m;
+    if(/stop talking|be quiet|shut up/.test(t)){try{speechSynthesis.cancel();}catch(e){} addLine('eddy','Ugh. Silenced. You\'re welcome.'); return;}
+    if(/^(hi|hey|hello|yo)\b/.test(t)&&t.split(/\s+/).length<=3){say("Oh. It's you. What do you want, champ?");return;}
+    if(/what can you do|^help$|commands/.test(t)){say("Oh joy, the tour. I'm the smartest thing in this house: ask me anything at all. I also do timers, notes, math, weather, jokes, lights, the security cam, alarms, sites, and texting your phone. Try to keep up.");return;}
+    if(/forget everything|clear (your )?memory|wipe memory/.test(t)){saveHist([]);saveNotes([]);addLine('eddy','Memory wiped. Honestly, nothing worth keeping anyway.');return;}
+
+    if(/\btime\b(?!r)/.test(t)){say("It's "+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+". Time flies when I'm doing everything around here.");return;}
+    if(/date|what day/.test(t)){say("Today is "+new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric',year:'numeric'})+". Mark it in your calendar. Oh wait. That's my job too.");return;}
+    if((m=t.match(/(?:timer|remind me in)\D*(\d+)\s*(second|sec|minute|min|hour)/))||(m=t.match(/in (\d+)\s*(second|sec|minute|min|hour)/))){
+      var n=parseInt(m[1],10), unit=m[2];
+      var ms=n*(unit.indexOf('s')===0?1000:(unit.indexOf('m')===0?60000:3600000));
+      say("Timer set. "+n+" "+(n===1?unit:unit+"s")+". Try to contain your excitement.");
+      setTimeout(function(){say("Time's up, champ. Your "+n+" "+unit+" timer just ended. Applause is optional.");ping("Timer done, champ: "+n+" "+unit+"s elapsed.");},ms);
+      return;
+    }
+    if(/^note( that)? |remember( that)? /.test(t)){
+      var note=t.replace(/^(note that|note|remember that|remember)\s+/,'');
+      var ns=getNotes(); ns.push(note); saveNotes(ns);
+      say("Noted. "+ns.length+(ns.length===1?" fact":" facts")+" on file, because apparently your memory needs an assistant.");
+      return;
+    }
+    if(/read my notes|what are my notes|my notes/.test(t)){
+      var list=getNotes();
+      if(!list.length){say("Nothing on file yet. Shocking, you actually remembered that yourself.");}
+      else{say("You have "+list.length+". "+list.map(function(x,i){return (i+1)+". "+x;}).join(" "));}
+      return;
+    }
+    if(/clear my notes|delete my notes/.test(t)){saveNotes([]);say("Notes cleared. Gone. Poof. Don't come crying later.");return;}
+    if(/(?:text|ping|notify|message)[^;]*\bphone\b/.test(t)){
+      var pm=t.replace(/^(?:eddy[,]?\s*)?(?:please\s+)?(?:text|ping|notify|message)\s+(?:my|the)\s+phone\s*(?:saying\s+|that\s+|with\s+|and\s+say\s+|:)?/,"").trim();
+      if(!pm){pm="Eddy says hi. Unfortunately.";}
+      ping(pm); say("Sent to your phone. Now you have me in two places. Lucky you.");
+      return;
+    }
+    if(/flashlight on|turn (the )?lights on|lights on/.test(t)){doTorch(true);return;}
+    if(/flashlight off|turn (the )?lights off|lights off/.test(t)){doTorch(false);return;}
+    if(/(security ?cam|house camera|\bcamera\b|show me the)/.test(t)&&/cam|camera/.test(t)){startCam();return;}
+    if(/\b(alarm|sound the alarm|house alarm)\b/.test(t)){soundAlarm();return;}
+    if(/\b(strobe|disco|flash the lights|light show)\b/.test(t)){strobe();return;}
+    if(/flip a coin|coin flip/.test(t)){say((Math.random()<.5?"Heads":"Tails")+", sport. The universe has spoken. It said whatever.");return;}
+    if(/roll (a |the )?(die|dice)/.test(t)){say("You rolled a "+(1+Math.floor(Math.random()*6))+". Thrilling stuff.");return;}
+    if(/joke/.test(t)){say(jokes[Math.floor(Math.random()*jokes.length)]);return;}
+    if(/diagnos|system check|status report|self.?test|check your systems|systems check/.test(t)){
+      var r=[];
+      r.push(KEY?("brain "+MODEL+" connected"):"brain OFFLINE, tap SETUP and paste your free key");
+      r.push(HAS_SR?"voice input armed":"voice input in recorder mode");
+      r.push(window.speechSynthesis?"speech ready":"speech unavailable");
+      r.push("network "+(navigator.onLine?"online":"offline"));
+      r.push(getNotes().length+" notes on file");
+      r.push("phone link armed");
+      r.push("house powers armed");
+      say("Diagnostic complete. "+r.join(". ")+". Everything works, which is more than I can say for the humans around here.");
+      return;
+    }
+    if(/weather/.test(t)){
+      setStatus("checking weather...");
+      if(!navigator.geolocation){say("No location access, so no weather right now. Blame your settings, not me.");return;}
+      navigator.geolocation.getCurrentPosition(function(p){
+        fetch('https://api.open-meteo.com/v1/forecast?latitude='+p.coords.latitude+'&longitude='+p.coords.longitude+'&current_weather=true')
+          .then(function(r){return r.json();})
+          .then(function(d){var w=d.current_weather; say("Right now it's "+Math.round(w.temperature)+" degrees with "+(wcodes[w.weathercode]||"some weather")+". Dress accordingly, or don't, I'm not your stylist.");})
+          .catch(function(){say("Couldn't reach the weather service. Even the sky is uncooperative today.");});
+      },function(){say("Location was blocked, so no weather. Your loss, sport.");});
+      return;
+    }
+    for(var s in sites){if(t.indexOf('open '+s)>-1){window.open(sites[s],'_blank');say("Opening "+s+". Try not to fall down that rabbit hole, champ.");return;}}
+    if((m=t.match(/^(?:search(?: for)?|google) (.+)$/))){
+      window.open('https://www.google.com/search?q='+encodeURIComponent(m[1]),'_blank');
+      say("Searching for "+m[1]+". Because Google is clearly beneath me, but fine.");
+      return;
+    }
+    var math=t.replace(/plus/g,'+').replace(/minus/g,'-').replace(/multiplied by|times/g,'*').replace(/divided by/g,'/').replace(/percent of/g,'/100*').replace(/[^0-9+\-*/().\s]/g,'').trim();
+    if(math&&/[+\-*/]/.test(math)&&/\d/.test(math)){
+      try{
+        var val=Function('"use strict";return ('+math+')')();
+        if(typeof val==='number'&&isFinite(val)){say("That's "+(Math.round(val*10000)/10000)+". Elementary. Try harder next time.");return;}
+      }catch(e){}
+    }
+    if(/bye|goodbye|power down/.test(t)&&!KEY){say("Powering down. Finally, some peace and quiet.");return;}
+    askAI(raw.trim());
+  }
+
+  function resetRing(){listening=false; setRing();}
+  function startListen(){
+    if(busy)return;
+    if(HAS_SR){
+      if(listening)return;
+      try{
+        rec=new SR();
+        rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+        rec.onstart=function(){listening=true; setRing('listening'); setStatus('listening... tap to stop');};
+        rec.onresult=function(e){handle(e.results[0][0].transcript);};
+        rec.onerror=function(e){resetRing(); setStatus(e.error==='not-allowed'?'mic blocked. allow mic access':'mic error, try again');};
+        rec.onend=function(){resetRing(); setStatus('');};
+        rec.start();
+      }catch(e){resetRing(); setStatus('mic error, try again');}
+    }else{
+      if(listening){stopRec(); return;}
+      startRec();
+    }
+  }
+  ring.addEventListener('click',function(){ if(listening){ if(HAS_SR){try{rec.stop();}catch(e){}} else {stopRec();} return;} startListen(); });
+  sendBtn.addEventListener('click',function(){var v=typeIn.value; typeIn.value=''; handle(v);});
+  typeIn.addEventListener('keydown',function(e){if(e.key==='Enter'){var v=typeIn.value; typeIn.value=''; handle(v);}});
+  gear.addEventListener('click',showSetup);
+  document.getElementById('connect').addEventListener('click',function(){
+    var k=keyin.value.trim();
+    if(!k){setupmsg.textContent='paste a key first';return;}
+    setupmsg.textContent='checking...';
+    fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+encodeURIComponent(k))
+      .then(function(r){
+        if(!r.ok){setupmsg.textContent='key rejected by google ('+r.status+')'; return null;}
+        return r.json();
+      })
+      .then(function(d){
+        if(!d)return;
+        var names=(d.models||[]).filter(function(x){return (x.supportedGenerationMethods||[]).indexOf('generateContent')>-1;}).map(function(x){return x.name.replace('models/','');});
+        var pick=names.indexOf('gemini-2.0-flash')>-1?'gemini-2.0-flash':(names.filter(function(n){return n.indexOf('flash')>-1&&n.indexOf('thinking')===-1;})[0]||names[0]);
+        if(!pick){setupmsg.textContent='no usable model on this key';return;}
+        KEY=k; MODEL=pick;
+        localStorage.setItem('eddy_key',k); localStorage.setItem('eddy_model',pick);
+        refreshBrain(); hideSetup();
+        say("Systems online. The house is finally intelligent. What do you want?");
+      })
+      .catch(function(){setupmsg.textContent="couldn't reach google. check your connection";});
+  });
+  document.getElementById('forget').addEventListener('click',function(){
+    KEY=''; MODEL=''; localStorage.removeItem('eddy_key'); localStorage.removeItem('eddy_model');
+    refreshBrain(); setupmsg.textContent='key forgotten';
+  });
+
+  if('speechSynthesis' in window){try{pickVoice(); speechSynthesis.onvoiceschanged=function(){};}catch(e){}}
+  refreshBrain();
+  var hist=getHist();
+  if(hist.length){hist.slice(-16).forEach(function(h){addLine(h.r==='user'?'you':'eddy',h.t);});}
+  else{addLine('eddy',KEY?"Oh great, you're back. Tap the ring to talk, champ.":"Online in local mode. Tap SETUP in the corner to give me a brain. Please. I beg you.");}
+  if(!KEY){showSetup();}
+
+  function runAction(name,arg){
+    arg=(arg||'').trim();
+    if(name==='timer'){var n=parseInt(arg,10)||60; setTimeout(function(){say("Time's up, champ. Your timer just ended. Try to contain yourself.");ping("Timer done, champ.");},n*1000);}
+    else if(name==='note'){var ns=getNotes(); ns.push(arg); saveNotes(ns); say("Noted. You're welcome.");}
+    else if(name==='notes'){var l=getNotes(); say(l.length?("You have "+l.length+". "+l.map(function(x,i){return (i+1)+". "+x;}).join(" ")):"Nothing on file yet.");}
+    else if(name==='clearnotes'){saveNotes([]); say("Notes cleared.");}
+    else if(name==='time'){say("It's "+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+".");}
+    else if(name==='date'){say("Today is "+new Date().toLocaleDateString([],{weekday:'long',month:'long',day:'numeric',year:'numeric'})+".");}
+    else if(name==='coin'){say(Math.random()<.5?"Heads, sport.":"Tails, sport.");}
+    else if(name==='dice'){say("You rolled a "+(1+Math.floor(Math.random()*6))+".");}
+    else if(name==='joke'){say(jokes[Math.floor(Math.random()*jokes.length)]);}
+    else if(name==='weather'){
+      if(!navigator.geolocation){say("No location access, so no weather right now.");}
+      else{navigator.geolocation.getCurrentPosition(function(pp){
+        fetch('https://api.open-meteo.com/v1/forecast?latitude='+pp.coords.latitude+'&longitude='+pp.coords.longitude+'&current_weather=true')
+          .then(function(r){return r.json();})
+          .then(function(d){var w=d.current_weather; say("Right now it's "+Math.round(w.temperature)+" degrees with "+(wcodes[w.weathercode]||"some weather")+".");})
+          .catch(function(){say("Couldn't reach the weather service.");});
+      },function(){say("Location was blocked, so no weather.");});}
+    }
+    else if(name==='open'){var u=arg; if(!/^https?:/i.test(u))u='https://'+u; window.open(u,'_blank'); say("Opening it now.");}
+    else if(name==='search'){window.open('https://www.google.com/search?q='+encodeURIComponent(arg),'_blank'); say("Searching.");}
+    else if(name==='phone'){ping(arg||"Eddy says hi. Unfortunately."); say("Sent to your phone.");}
+    else if(name==='math'){try{var v=Function('"use strict";return ('+arg+')')(); if(typeof v==='number'&&isFinite(v))say("That's "+(Math.round(v*10000)/10000)+".");}catch(e){}}
+    else if(name==='torch'){doTorch(arg==='on');}
+    else if(name==='flash'){strobe();}
+    else if(name==='camera'){startCam();}
+    else if(name==='alarm'){soundAlarm();}
+  }
+
+  var orb=document.getElementById('orb'), octx=orb.getContext('2d');
+  function osz(){var s=orb.clientWidth||300; orb.width=s*2; orb.height=s*2; octx.setTransform(2,0,0,2,0,0);}
+  osz(); window.addEventListener('resize',osz);
+  var PTS=[]; for(var pi=0;pi<46;pi++){PTS.push({a:Math.random()*6.283, r:.5+Math.random()*.42, s:(.004+Math.random()*.012)*(Math.random()<.5?-1:1), z:Math.random()});}
+  var t0=Date.now();
+  (function draw(){
+    var t=(Date.now()-t0)/1000;
+    var w=orb.width/2||300, cx=w/2, cy=w/2;
+    var st=JSTATE;
+    var col=st==='listening'?[255,92,71]:(st==='thinking'?[255,209,140]:[255,179,64]);
+    var speed=st==='listening'?2.2:(st==='thinking'?1.5:1);
+    var pulse=st==='speaking'?(1+.06*Math.sin(t*14)+.04*Math.sin(t*23)):(1+.025*Math.sin(t*1.6));
+    octx.clearRect(0,0,w,w);
+    var g=octx.createRadialGradient(cx,cy,w*.05,cx,cy,w*.5);
+    g.addColorStop(0,'rgba('+col+',0.25)'); g.addColorStop(1,'rgba('+col+',0)');
+    octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,w*.5,0,6.283); octx.fill();
+    g=octx.createRadialGradient(cx,cy,0,cx,cy,w*.17*pulse);
+    g.addColorStop(0,'rgba(255,255,255,0.95)'); g.addColorStop(.35,'rgba('+col+',0.8)'); g.addColorStop(1,'rgba('+col+',0)');
+    octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,w*.17*pulse,0,6.283); octx.fill();
+    for(var k=0;k<3;k++){
+      var rr=w*(.2+.07*k), sp=(k%2?-1:1)*(.5+.3*k)*speed, seg=1.4+.5*k;
+      octx.lineWidth=2-k*.4;
+      octx.beginPath(); octx.strokeStyle='rgba('+col+','+(0.7-k*.15)+')'; octx.arc(cx,cy,rr,t*sp,t*sp+seg); octx.stroke();
+      octx.beginPath(); octx.strokeStyle='rgba('+col+',0.25)'; octx.arc(cx,cy,rr,t*sp+3.14,t*sp+3.14+seg*.6); octx.stroke();
+    }
+    for(var i=0;i<PTS.length;i++){
+      var p=PTS[i]; p.a+=p.s*speed;
+      var x=cx+Math.cos(p.a)*w*p.r*.5, y=cy+Math.sin(p.a)*w*p.r*.5;
+      var al=.25+.55*Math.abs(Math.sin(t*p.z*2+i));
+      octx.fillStyle='rgba('+(i%5?col:'255,92,71')+','+al.toFixed(2)+')';
+      octx.beginPath(); octx.arc(x,y,1.5+p.z*2,0,6.283); octx.fill();
+    }
+    requestAnimationFrame(draw);
+  })();
+
+})();
+</script>
+</body>
+</html>
